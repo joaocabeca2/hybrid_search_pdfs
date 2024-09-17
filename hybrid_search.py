@@ -10,6 +10,7 @@ from lancedb.embeddings import get_registry
 from dotenv import load_dotenv
 import google.generativeai as genai
 import pandas as pd
+import re
 
 embed_func = get_registry().get("sentence-transformers").create(device="cpu")
 class Schema(LanceModel):
@@ -23,6 +24,37 @@ def create_index_chunks(table):
     table = table.drop('metadata', axis=1)
     return table
 
+def preprocessar_texto(texto):
+    # Remove quebras de linha extras que possam estar fragmentando o texto
+    texto = re.sub(r'\n+', ' ', texto)
+
+    # Remove espaços duplos resultantes da remoção de quebras de linha
+    texto = re.sub(r'\s{2,}', ' ', texto)
+
+    # Remove quebras de página visíveis
+    texto = texto.replace('\f', '')
+
+    # Remove tabulações e caracteres não ASCII
+    texto = texto.replace('\t', ' ')
+    # texto = re.sub(r'[^\x00-\x7F]+', ' ', texto)
+
+    # Remove hifens de quebra de linha e une as palavras
+    texto = re.sub(r'-\s+', '', texto)
+
+    # Remove espaços antes de pontuação
+    texto = re.sub(r'\s+([.,;?!])', r'\1', texto)
+
+    # Remove acentos
+    texto = unidecode(texto)
+
+    # Regex para remover sequências de 2 ou mais underscores (traços)
+    texto = re.sub(r'_+', '', texto)
+
+    # Remover numerações de marcação ao iniciar uma nova linha
+    texto = re.sub(r'\d+(\.\d+)+\s*', '', texto)
+
+    return texto.strip().lower()
+    
 def create_full_text_search_index(table):
     try:
         table.create_fts_index(['text'], replace=True)
