@@ -9,6 +9,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmb
 import pandas as pd
 import re
 from unidecode import unidecode
+import unicodedata
 from getpass import getpass
 from dotenv import load_dotenv
 
@@ -18,18 +19,17 @@ def create_index_chunks(table):
     return table
 
 def preprocessar_texto(texto):
+    # Normaliza o texto para lidar com caracteres Unicode
+    texto = unicodedata.normalize('NFKD', texto)
+    
     # Remove quebras de linha extras que possam estar fragmentando o texto
     texto = re.sub(r'\n+', ' ', texto)
-
-    # Remove espaços duplos resultantes da remoção de quebras de linha
-    texto = re.sub(r'\s{2,}', ' ', texto)
 
     # Remove quebras de página visíveis
     texto = texto.replace('\f', '')
 
     # Remove tabulações e caracteres não ASCII
     texto = texto.replace('\t', ' ')
-    # texto = re.sub(r'[^\x00-\x7F]+', ' ', texto)
 
     # Remove hifens de quebra de linha e une as palavras
     texto = re.sub(r'-\s+', '', texto)
@@ -45,6 +45,9 @@ def preprocessar_texto(texto):
 
     # Remover numerações de marcação ao iniciar uma nova linha
     texto = re.sub(r'\d+(\.\d+)+\s*', '', texto)
+    
+    # Remove espaços duplos resultantes da remoção de quebras de linha
+    texto = re.sub(r'\s{2,}', '', texto)
 
     return texto.strip().lower()
     
@@ -173,4 +176,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
