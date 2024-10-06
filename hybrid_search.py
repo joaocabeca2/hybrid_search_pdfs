@@ -105,7 +105,7 @@ def main():
     
     #Estabelecendo configurações iniciais
     if "GOOGLE_API_KEY" not in os.environ:
-         os.environ["GOOGLE_API_KEY"] = getpass("sua api key")
+         os.environ["GOOGLE_API_KEY"] = getpass("AIzaSyDfzFvmb_TxWXrncVJQRtln9D6NZmamcZE")
          
     model = get_registry().get("gemini-text").create(name="models/embedding-001")
 
@@ -159,7 +159,7 @@ def main():
         text = semantic_chunk_ant + semantic_chunk + semantic_chunk_pos
         semantic_texts.append(text)
 
-    print(text)
+        print(index, text)
     gemini_responses = []
     model = create_genai_llm(os.getenv('GOOGLE_API_KEY'))
     for semantic_text in semantic_texts:
@@ -173,6 +173,7 @@ def main():
         gemini_responses.append(response.content)
 
     df = pd.DataFrame({'semantic_chunks': semantic_texts, 'gemini_responses': gemini_responses})
+    df.to_excel('hybrid-search.xlsx')
 
 if __name__ == '__main__':
     main()
