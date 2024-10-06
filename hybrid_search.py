@@ -104,8 +104,8 @@ def main():
     load_dotenv()
     
     #Estabelecendo configurações iniciais
-    '''if "GOOGLE_API_KEY" not in os.environ:
-         os.environ["GOOGLE_API_KEY"] = getpass("AIzaSyCl17ZZs8Q1Iznjb3ufUyyGCVPcnd9yEsA")'''
+    if "GOOGLE_API_KEY" not in os.environ:
+         os.environ["GOOGLE_API_KEY"] = getpass("sua api key")
          
     model = get_registry().get("gemini-text").create(name="models/embedding-001")
 
