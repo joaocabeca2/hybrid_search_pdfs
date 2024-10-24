@@ -14,7 +14,7 @@ from getpass import getpass
 from dotenv import load_dotenv
 
 def create_index_chunks(table):
-    start_index = [indice for indice, _ in enumerate(table['text'])]
+    start_index = [indice for indice, _ in enumerate(table['context_text'])]
     table['index'] = start_index
     return table
 
@@ -74,14 +74,9 @@ def create_embedding_func(model_name, api_key):
     except Exception as e:
         raise Exception(f'Não foi possível criar a função de embeddings: {e}')
 
-def read_file(path_file):
-    if path_file.endswith('.pdf'):
-        textLoader = PyPDFLoader(path_file)
-    return textLoader.load()
-
-def create_chunks(docs):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=0)
-    return text_splitter.split_documents(docs)
+def create_chunks(text):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=0)
+    return text_splitter.split_text(text)
 
 def create_lance_table(chunks, table_name, df, schema):
     db = lancedb.connect("~/langchain")
@@ -114,24 +109,33 @@ def main():
         vector: Vector(model.ndims()) = model.VectorField()
         page: int
         index: int 
+    
+    """ Primeira tarefa - Você receberá um arquivo “Teste_Q&A.csv”, as colunas nesse arquivo 
+    serão: contexto, pergunta, Classe_verdadeira, Classe_predita. Sua anotação deve seguir a 
+    seguinte lógica: existem dois tipos de Classe_verdadeira, 0 e 1, nas linhas marcadas com 1 
+    na Classe_verdadeira, você deve ler a pergunta e verificar se a resposta na mesma linha 
+    está dentro do contexto fornecido nessa linha, de forma que nenhuma informação 
+    contida na resposta possa ser de fora do contexto, ou seja, apenas informações que estão 
+    dentro do contexto podem ser encontradas na resposta. Caso esse padrão aconteça, 
+    marque a coluna Classe_predita com 1, caso esse padrão não aconteça marque com 0.
+    O segundo tipo de Classe_verdadeira é o 0, nesse caso você deve olhar a resposta e 
+    verificar se a resposta indica que não foi possível responder a pergunta, exemplo: “Meu 
+    conhecimento é restrito ao contexto fornecido, e não posso fornecer informações além 
+    disso. Perdão pela limitação.”, nesse caso marque a coluna Classe_predita como 0. Se a 
+    resposta conter qualquer informação que tenta responder a pergunta, estando certo ou 
+    não, estando dentro do contexto ou não, marque como 1."""
 
     print('\nLendo o arquivo...')
-    docs = read_file('artigo.pdf')
-
-    if docs:
-        print('\nCriando os chunks...')
-        chunks = create_chunks(docs)
-        texts = []
-        pages = []
-        for chunk in chunks:
-            texts.append(chunk.page_content)
-            pages.append(chunk.metadata['page'])
+    df = pd.read_csv('teste_qa_portugus.csv', encoding='utf8')
+    for _, linha in df.iterrows():
+        context_text = linha['contexto']
+        chunks = create_chunks(context_text)
 
         #Criando um dataframe com os dados dos chunks
-        df = pd.DataFrame({'text': texts, 'page': pages})
-        df['text'] = df['text'].apply(preprocessar_texto)
-    table_doc = create_index_chunks(df)
-    table_doc.head()
+        df = pd.DataFrame({'context_text': chunks,})
+        df['context_text'] = df['context_text'].apply(preprocessar_texto)
+        table_doc = create_index_chunks(df)
+        #table_doc.head()
     
     print('\nCriando uma tabela lancedb e estabelecendo um indice para a full-text-search...')
     table = create_lance_table(chunks, 'lancetb', df, schema=Schema)
